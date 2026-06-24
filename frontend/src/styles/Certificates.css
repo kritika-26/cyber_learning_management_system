@@ -1,0 +1,182 @@
+.page-title{
+  font-size:52px;
+  margin-bottom:10px;
+
+  background:
+    linear-gradient(
+      90deg,
+      #00F5FF,
+      #7C5CFF
+    );
+
+  -webkit-background-clip:text;
+  -webkit-text-fill-color:transparent;
+}
+
+.page-subtitle{
+  color:#A1A1AA;
+  margin-bottom:35px;
+}
+
+.certificate-grid{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:25px;
+}
+
+.certificate-card{
+  background:
+    linear-gradient(
+      135deg,
+      #111827,
+      #0B1220
+    );
+
+  border:1px solid rgba(0,245,255,.12);
+
+  border-radius:24px;
+
+  padding:30px;
+
+  text-align:center;
+
+  transition:.3s;
+}
+
+.certificate-card:hover{
+  border-color:#00F5FF;
+
+  box-shadow:
+    0 0 25px rgba(0,245,255,.18);
+}
+
+.certificate-badge{
+  font-size:60px;
+  margin-bottom:20px;
+}
+
+.certificate-card h2{
+  margin-bottom:12px;
+  color:#F5F7FA;
+}
+
+.certificate-card p{
+  color:#A1A1AA;
+  margin-bottom:20px;
+}
+
+.certificate-card button{
+  border:none;
+
+  padding:12px 22px;
+
+  border-radius:12px;
+
+  cursor:pointer;
+
+  font-weight:600;
+
+  background:
+    linear-gradient(
+      135deg,
+      #00F5FF,
+      #7C5CFF
+    );
+
+  color:white;
+
+  transition:.3s;
+}
+
+.certificate-card button:hover{
+  box-shadow:
+    0 8px 20px rgba(0,245,255,.25);
+}
+
+/* HEADER */
+
+.certificates-header{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+
+  margin-bottom:35px;
+}
+
+.certificate-tag{
+  color:#00F5FF;
+  letter-spacing:3px;
+  font-size:12px;
+  font-weight:600;
+}
+
+.certificate-count{
+  width:140px;
+  height:140px;
+
+  border-radius:50%;
+
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  align-items:center;
+
+  background:
+    radial-gradient(circle,#121826 58%,transparent 59%),
+    conic-gradient(
+      #00F5FF 0deg 300deg,
+      #2A2A35 300deg 360deg
+    );
+
+  box-shadow:
+    0 0 25px rgba(0,245,255,.18);
+}
+
+.certificate-count h2{
+  color:#00F5FF;
+  font-size:34px;
+}
+
+.certificate-count span{
+  color:#A1A1AA;
+  font-size:12px;
+  text-align:center;
+}
+
+.issue-date{
+  display:block;
+  color:#00F5FF;
+  margin-bottom:18px;
+  font-size:14px;
+}
+
+/* RESPONSIVE */
+
+@media(max-width:1100px){
+
+  .certificate-grid{
+    grid-template-columns:repeat(2,1fr);
+  }
+}
+
+@media(max-width:768px){
+
+  .certificates-header{
+    flex-direction:column;
+    align-items:flex-start;
+    gap:25px;
+  }
+
+  .certificate-grid{
+    grid-template-columns:1fr;
+  }
+
+  .page-title{
+    font-size:40px;
+  }
+
+  .certificate-count{
+    width:120px;
+    height:120px;
+  }
+}

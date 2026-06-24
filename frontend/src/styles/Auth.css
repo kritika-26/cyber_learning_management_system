@@ -1,0 +1,290 @@
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600&display=swap');
+
+.auth-container{
+  min-height:100vh;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  overflow:hidden;
+  position:relative;
+
+  background:
+  radial-gradient(circle at top left,
+  rgba(255,43,214,.15),
+  transparent 35%),
+
+  radial-gradient(circle at bottom right,
+  rgba(0,200,255,.12),
+  transparent 35%),
+
+  linear-gradient(
+  135deg,
+  #050816,
+  #09111f,
+  #050816);
+}
+
+/* Animated Background Glow */
+
+.auth-container::before{
+  content:"";
+  position:absolute;
+  width:500px;
+  height:500px;
+  border-radius:50%;
+
+  background:
+  radial-gradient(
+  rgba(255,43,214,.18),
+  transparent);
+
+  top:-180px;
+  left:-150px;
+
+  animation:floatGlow 8s ease-in-out infinite;
+}
+
+.auth-container::after{
+  content:"";
+  position:absolute;
+  width:450px;
+  height:450px;
+  border-radius:50%;
+
+  background:
+  radial-gradient(
+  rgba(0,200,255,.15),
+  transparent);
+
+  bottom:-180px;
+  right:-120px;
+
+  animation:floatGlow 10s ease-in-out infinite;
+}
+
+@keyframes floatGlow{
+  0%{
+    transform:translateY(0);
+  }
+
+  50%{
+    transform:translateY(30px);
+  }
+
+  100%{
+    transform:translateY(0);
+  }
+}
+
+/* Glass Card */
+
+.auth-box{
+  width:430px;
+  max-width:90%;
+
+  padding:42px;
+
+  border-radius:28px;
+
+  position:relative;
+  z-index:2;
+
+  background:rgba(255,255,255,.05);
+
+  backdrop-filter:blur(18px);
+
+  border:1px solid rgba(255,255,255,.08);
+
+  box-shadow:
+  0 15px 45px rgba(0,0,0,.45);
+
+  transition:.4s;
+}
+
+.auth-box:hover{
+  transform:translateY(-5px);
+
+  box-shadow:
+  0 0 35px rgba(255,43,214,.15),
+  0 0 35px rgba(0,200,255,.15);
+}
+
+/* Heading */
+
+.auth-box h2{
+  font-family:'Orbitron',sans-serif;
+
+  font-size:2.2rem;
+
+  text-align:center;
+
+  margin-bottom:10px;
+
+  background:linear-gradient(
+  90deg,
+  #ff2bd6,
+  #00c8ff);
+
+  -webkit-background-clip:text;
+  -webkit-text-fill-color:transparent;
+}
+
+.auth-box p{
+  text-align:center;
+  color:#cfcfcf;
+  margin-bottom:25px;
+}
+
+/* Form */
+
+.auth-box form{
+  display:flex;
+  flex-direction:column;
+  gap:15px;
+}
+
+/* Inputs */
+
+.auth-box input,
+.auth-box select{
+  padding:15px 16px;
+
+  border-radius:14px;
+
+  border:1px solid rgba(255,255,255,.1);
+
+  background:rgba(255,255,255,.04);
+
+  color:white;
+
+  outline:none;
+
+  transition:.3s;
+}
+
+.auth-box input::placeholder{
+  color:#9f9f9f;
+}
+
+.auth-box input:focus,
+.auth-box select:focus{
+  border-color:#00c8ff;
+
+  box-shadow:
+  0 0 15px rgba(0,200,255,.25);
+}
+
+.auth-box option{
+  background:#09111f;
+  color:white;
+}
+
+/* Login Button */
+
+.auth-box button{
+  margin-top:10px;
+
+  padding:15px;
+
+  border:none;
+
+  border-radius:14px;
+
+  cursor:pointer;
+
+  color:white;
+
+  font-size:1rem;
+  font-weight:700;
+
+  background:linear-gradient(
+  90deg,
+  #ff2bd6,
+  #7f4cff,
+  #00c8ff);
+
+  transition:.3s;
+}
+
+.auth-box button:hover{
+  transform:translateY(-3px);
+
+  box-shadow:
+  0 0 25px rgba(255,43,214,.35);
+}
+
+/* Switch Text */
+
+.switch-text{
+  margin-top:22px;
+  text-align:center;
+  color:#bdbdbd;
+}
+
+.switch-text span{
+  color:#00c8ff;
+  font-weight:600;
+  cursor:pointer;
+}
+
+.switch-text span:hover{
+  text-decoration:underline;
+}
+
+/* Error */
+
+.error-message{
+  color:#ff6b81;
+  text-align:center;
+  font-size:.9rem;
+}
+
+/* Mobile */
+
+@media(max-width:768px){
+
+  .auth-box{
+    width:90%;
+    padding:30px;
+  }
+
+  .auth-box h2{
+    font-size:1.8rem;
+  }
+}
+
+.forgot-password{
+  text-align:center;
+  margin-top:16px;
+  margin-bottom:22px;
+
+  color:#00c8ff;
+
+  font-size:15px;
+  font-weight:600;
+
+  cursor:pointer;
+  transition:.3s;
+}
+
+.forgot-password:hover{
+  color:#ff2bd6;
+}
+
+.switch-text{
+  text-align:center;
+  color:#bdbdbd;
+  font-size:15px;
+  margin-top:0;
+}
+
+.switch-text span{
+  color:#00c8ff;
+  font-weight:600;
+  cursor:pointer;
+  transition:.3s;
+}
+
+.switch-text span:hover{
+  color:#ff2bd6;
+}
