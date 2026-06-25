@@ -110,42 +110,6 @@
 * *(Optional)* Cloudinary Account (for live media uploads)
 * *(Optional)* SMTP credentials (for outbound email updates)
 
-### 1. Environment Variables Configuration
-
-#### Backend Env (`backend/.env`)
-Create a file named `.env` inside the `backend` folder and populate it:
-```env
-# Server Port
-PORT=5000
-
-# JSON Web Token Key
-JWT_SECRET=your-super-long-secure-jwt-secret-key
-
-# Database Connection (PostgreSQL)
-DATABASE_URL="postgresql://username:password@localhost:5432/intexia_db?schema=public"
-
-# Optional: Cloudinary Credentials (falls back to local /uploads if not set)
-CLOUDINARY_CLOUD_NAME=your_cloud_name
-CLOUDINARY_API_KEY=your_api_key
-CLOUDINARY_API_SECRET=your_api_secret
-
-# Optional: Production SMTP Email Server (falls back to Ethereal Mail if not set)
-SMTP_HOST=smtp.mailgun.org
-SMTP_PORT=587
-SMTP_USER=your_smtp_username
-SMTP_PASS=your_smtp_password
-SMTP_FROM='"INTEXIA Support" <noreply@intexia.com>'
-
-# Frontend URL for Dynamic CORs
-FRONTEND_URL=http://localhost:5173
-```
-
-#### Frontend Env (`frontend/.env`)
-Create a file named `.env` inside the `frontend` folder:
-```env
-VITE_API_URL=http://localhost:5000
-```
-
 ---
 
 ## 🗄️ Database Initialization & Seeding
