@@ -102,7 +102,7 @@ function RegisterPage() {
         <h2>Create Account</h2>
 
         <p>
-          Join SHOURYA Learning Platform
+          Join INTEXIA PLATFORM
         </p>
 
         <form onSubmit={handleRegister}>

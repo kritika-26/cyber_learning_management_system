@@ -43,8 +43,8 @@ function InstructorSidebar() {
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%" }}>
             {!collapsed && (
               <div>
-                <h1 style={{ fontSize: "28px" }}>INTEXIA</h1>
-                <p style={{ fontSize: "12px", color: "#8b94a7" }}>Instructor Panel</p>
+                <h1>INTEXIA</h1>
+                <p style={{ fontSize: "12px", color: "#8b94a7" }}>Cyber Learning Hub</p>
               </div>
             )}
             <FaBars

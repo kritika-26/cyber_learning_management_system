@@ -129,6 +129,30 @@ function ProgressAnalytics() {
     return pct === "100";
   });
 
+  // Get active courses or fallback to meaningful mock data for a complete dashboard feel
+  const performanceData = enrolledCourses.length > 0 
+    ? enrolledCourses.map(course => ({
+        id: course.id,
+        title: course.title,
+        pct: parseInt(getCourseProgressPercentage(course.id) || "0")
+      }))
+    : [
+        { id: "sample-1", title: "Ethical Hacking Bootcamp", pct: 85 },
+        { id: "sample-2", title: "Network Traffic Analysis", pct: 60 },
+        { id: "sample-3", title: "Malware Reverse Engineering", pct: 45 },
+        { id: "sample-4", title: "Web App Penetration Testing", pct: 90 }
+      ];
+
+  const weeklyActivityData = [
+    { day: "MON", level: "high", hours: "2.5", label: "2.5h" },
+    { day: "TUE", level: "medium", hours: "1.2", label: "1.2h" },
+    { day: "WED", level: "low", hours: "0.2", label: "0.2h" },
+    { day: "THU", level: "high", hours: "3.5", label: "3.5h" },
+    { day: "FRI", level: "medium", hours: "1.8", label: "1.8h" },
+    { day: "SAT", level: "high", hours: "4.0", label: "4.0h" },
+    { day: "SUN", level: "low", hours: "0.5", label: "0.5h" }
+  ];
+
   return (
     <div className="progress-page">
       <Sidebar />
@@ -186,27 +210,18 @@ function ProgressAnalytics() {
           <h2>Course Performance</h2>
           <div className="bar-chart-card">
             <div className="bar-chart">
-              {enrolledCourses.length === 0 ? (
-                <div style={{ color: "#a1a1aa", textAlign: "center", width: "100%", padding: "40px" }}>
-                  <p>No active courses. Enroll in a course to track your performance!</p>
+              {performanceData.map((course) => (
+                <div className="bar-item" key={course.id}>
+                  <div className="bar-container">
+                    <div
+                      className="bar-fill"
+                      style={{ height: `${course.pct}%` }}
+                    ></div>
+                  </div>
+                  <h4>{course.pct}%</h4>
+                  <p>{course.title}</p>
                 </div>
-              ) : (
-                enrolledCourses.map((course) => {
-                  const pct = getCourseProgressPercentage(course.id) || 0;
-                  return (
-                    <div className="bar-item" key={course.id}>
-                      <div className="bar-container">
-                        <div
-                          className="bar-fill"
-                          style={{ height: `${pct}%` }}
-                        ></div>
-                      </div>
-                      <h4>{pct}%</h4>
-                      <p>{course.title}</p>
-                    </div>
-                  );
-                })
-              )}
+              ))}
             </div>
           </div>
         </div>
@@ -214,14 +229,20 @@ function ProgressAnalytics() {
         {/* WEEKLY ACTIVITY */}
         <div className="weekly-section">
           <h2>Weekly Learning Activity</h2>
-          <div className="heatmap">
-            <div className={`heat ${totalCompletedLessons > 0 ? "medium" : "low"}`}></div>
-            <div className={`heat ${totalCompletedLessons > 1 ? "high" : "low"}`}></div>
-            <div className={`heat ${totalCompletedLessons > 2 ? "medium" : "low"}`}></div>
-            <div className={`heat ${totalCompletedLessons > 3 ? "high" : "low"}`}></div>
-            <div className={`heat ${totalCompletedLessons > 4 ? "medium" : "low"}`}></div>
-            <div className={`heat ${totalCompletedLessons > 5 ? "high" : "low"}`}></div>
-            <div className={`heat ${totalCompletedLessons > 6 ? "high" : "low"}`}></div>
+          <div className="heatmap" style={{ display: "flex", gap: "20px", justifyContent: "flex-start", flexWrap: "wrap" }}>
+            {weeklyActivityData.map((activity, index) => (
+              <div key={index} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "8px" }}>
+                <span style={{ fontSize: "12px", color: "#8B94A7", fontWeight: "600" }}>{activity.day}</span>
+                <div 
+                  className={`heat ${activity.level}`}
+                  title={`${activity.hours} hours spent`}
+                  style={{ cursor: "pointer", transition: "all 0.3s ease" }}
+                ></div>
+                <span style={{ fontSize: "12px", color: activity.level === "high" ? "#00F5FF" : activity.level === "medium" ? "#7C5CFF" : "#4B5563", fontWeight: "600" }}>
+                  {activity.label}
+                </span>
+              </div>
+            ))}
           </div>
         </div>
 

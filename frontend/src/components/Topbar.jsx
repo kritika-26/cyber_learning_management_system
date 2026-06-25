@@ -1,9 +1,11 @@
 import "./Topbar.css";
 import { FaSearch } from "react-icons/fa";
 import { useAuth } from "../context/AuthContext";
+import { useNavigate } from "react-router-dom";
 
 function Topbar() {
-const { user } = useAuth();
+  const { user } = useAuth();
+  const navigate = useNavigate();
 
 const today = new Date().toLocaleDateString("en-IN", {
 day: "numeric",
@@ -28,6 +30,10 @@ return ( <div className="topbar">
   </div>
 
   <div className="topbar-right">
+
+    <button className="welcome-btn" onClick={() => navigate("/")}>
+      Welcome
+    </button>
 
     <div className="date-box">
       {today}

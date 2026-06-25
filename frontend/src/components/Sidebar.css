@@ -34,18 +34,19 @@
 }
 
 .sidebar-header h1 {
-  font-size: 36px;
+  font-size: 28px !important;
   font-weight: 800;
-  letter-spacing: 3px;
+  letter-spacing: 2px;
 
   background: linear-gradient(
-    90deg,
-    #00f5ff,
-    #7c5cff
-  );
+    135deg,
+    #D946EF 0%,
+    #00E5FF 100%
+  ) !important;
 
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  filter: drop-shadow(0 0 5px rgba(217, 70, 239, 0.65)) drop-shadow(0 0 10px rgba(0, 229, 255, 0.45)) !important;
 }
 
 .sidebar-header p {

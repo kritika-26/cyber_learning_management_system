@@ -155,3 +155,35 @@ min-width:220px;
 }
 
 }
+
+.welcome-btn {
+  padding: 16px 22px;
+  border-radius: 18px;
+  background: linear-gradient(
+    135deg,
+    rgba(217, 70, 239, 0.15) 0%,
+    rgba(0, 229, 255, 0.1) 100%
+  );
+  border: 1px solid rgba(217, 70, 239, 0.3);
+  color: #00E5FF;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-family: inherit;
+  text-shadow: 0 0 5px rgba(0, 229, 255, 0.5);
+  box-shadow: 0 0 10px rgba(217, 70, 239, 0.1);
+  outline: none;
+}
+
+.welcome-btn:hover {
+  background: linear-gradient(
+    135deg,
+    rgba(217, 70, 239, 0.3) 0%,
+    rgba(0, 229, 255, 0.2) 100%
+  );
+  border-color: #00E5FF;
+  color: #ffffff;
+  box-shadow: 0 0 15px rgba(0, 229, 255, 0.4);
+  transform: translateY(-2px);
+}
+
