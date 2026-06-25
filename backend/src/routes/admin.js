@@ -4,7 +4,6 @@ import { prisma } from "../lib/prisma.js";
 import auth from "../middleware/auth.js";
 import validate from "../middleware/validate.js";
 
-
 const router = Router();
 
 const roleSchema = z.object({
@@ -20,7 +19,6 @@ const approveSchema = z.object({
   })
 });
 
-
 // Middleware to require ADMIN role
 function requireAdmin(req, res, next) {
   if (req.user && req.user.role === "ADMIN") {
@@ -30,20 +28,46 @@ function requireAdmin(req, res, next) {
   }
 }
 
-// GET ALL USERS
+// GET ALL USERS WITH FILTERS
 router.get("/users", auth, requireAdmin, async (req, res) => {
   try {
-    const users = await prisma.user.findMany({
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        role: true,
-        mobile: true,
-        createdAt: true
-      }
+    const { role, search, page = 1, limit = 50 } = req.query;
+    const where = {};
+    
+    if (role && role !== "All") {
+      where.role = role.toUpperCase();
+    }
+    
+    if (search) {
+      where.OR = [
+        { name: { contains: search, mode: "insensitive" } },
+        { email: { contains: search, mode: "insensitive" } }
+      ];
+    }
+
+    const [users, total] = await Promise.all([
+      prisma.user.findMany({
+        where,
+        skip: (parseInt(page) - 1) * parseInt(limit),
+        take: parseInt(limit),
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          role: true,
+          isActive: true,
+          createdAt: true
+        }
+      }),
+      prisma.user.count({ where })
+    ]);
+
+    res.json({
+      users,
+      total,
+      page: parseInt(page),
+      pages: Math.ceil(total / parseInt(limit))
     });
-    res.json(users);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Server error retrieving users." });
@@ -54,8 +78,7 @@ router.get("/users", auth, requireAdmin, async (req, res) => {
 router.patch("/users/:id/role", auth, requireAdmin, validate(roleSchema), async (req, res) => {
   try {
     const { id } = req.params;
-    const { role } = req.body; // e.g. "STUDENT", "INSTRUCTOR", "ADMIN"
-
+    const { role } = req.body;
 
     const updatedUser = await prisma.user.update({
       where: { id: parseInt(id) },
@@ -71,6 +94,33 @@ router.patch("/users/:id/role", auth, requireAdmin, validate(roleSchema), async 
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Server error updating user role." });
+  }
+});
+
+// PATCH USER STATUS (ACTIVE/DEACTIVE)
+router.patch("/users/:id/status", auth, requireAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { isActive } = req.body;
+
+    if (isActive === undefined) {
+      return res.status(400).json({ error: "isActive field is required." });
+    }
+
+    const user = await prisma.user.update({
+      where: { id: parseInt(id) },
+      data: { isActive: !!isActive },
+      select: {
+        id: true,
+        name: true,
+        isActive: true
+      }
+    });
+
+    res.json(user);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error updating user status." });
   }
 });
 
@@ -119,8 +169,7 @@ router.get("/courses/pending", auth, requireAdmin, async (req, res) => {
 router.patch("/courses/:id/approve", auth, requireAdmin, validate(approveSchema), async (req, res) => {
   try {
     const { id } = req.params;
-    const { approved } = req.body; // boolean: true to approve, false to reject
-
+    const { approved } = req.body;
 
     const course = await prisma.course.update({
       where: { id: parseInt(id) },
@@ -137,14 +186,64 @@ router.patch("/courses/:id/approve", auth, requireAdmin, validate(approveSchema)
 // PLATFORM ANALYTICS
 router.get("/analytics", auth, requireAdmin, async (req, res) => {
   try {
-    const totalUsers = await prisma.user.count();
-    const totalStudents = await prisma.user.count({ where: { role: "STUDENT" } });
-    const totalInstructors = await prisma.user.count({ where: { role: "INSTRUCTOR" } });
-    const totalCourses = await prisma.course.count();
-    const totalEnrollments = await prisma.enrollment.count();
-    const totalCertificates = await prisma.certificate.count();
+    const [
+      totalUsers,
+      totalStudents,
+      totalInstructors,
+      totalCourses,
+      totalEnrollments,
+      totalCertificates,
+      usersByRole,
+      enrollmentsPerCourse,
+      recentSignups
+    ] = await Promise.all([
+      prisma.user.count(),
+      prisma.user.count({ where: { role: "STUDENT" } }),
+      prisma.user.count({ where: { role: "INSTRUCTOR" } }),
+      prisma.course.count(),
+      prisma.enrollment.count(),
+      prisma.certificate.count(),
+      prisma.user.groupBy({ by: ["role"], _count: true }),
+      prisma.enrollment.groupBy({
+        by: ["courseId"],
+        _count: { courseId: true },
+        orderBy: { _count: { courseId: "desc" } },
+        take: 5
+      }),
+      prisma.user.findMany({
+        orderBy: { createdAt: "desc" },
+        take: 10,
+        select: { id: true, name: true, role: true, createdAt: true }
+      })
+    ]);
+
+    // Map top courses with title details for rendering charts
+    const topCoursesWithDetails = await Promise.all(
+      enrollmentsPerCourse.map(async (item) => {
+        const course = await prisma.course.findUnique({
+          where: { id: item.courseId },
+          select: { title: true }
+        });
+        return {
+          courseId: item.courseId,
+          count: item._count.courseId,
+          title: course ? course.title : `Course #${item.courseId}`
+        };
+      })
+    );
 
     res.json({
+      totals: {
+        users: totalUsers,
+        courses: totalCourses,
+        enrollments: totalEnrollments,
+        certificates: totalCertificates
+      },
+      usersByRole,
+      topCourses: topCoursesWithDetails,
+      recentSignups,
+
+      // Compatibility fallback structures
       totalUsers,
       totalStudents,
       totalInstructors,
@@ -155,6 +254,68 @@ router.get("/analytics", auth, requireAdmin, async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Server error retrieving platform analytics." });
+  }
+});
+
+// MONTHLY ENROLLMENTS TREND (RECHARTS COMPATIBLE)
+router.get("/analytics/monthly", auth, requireAdmin, async (req, res) => {
+  try {
+    const result = await prisma.$queryRaw`
+      SELECT DATE_TRUNC('month', "enrolledAt") AS month,
+             COUNT(*)::int AS enrollments
+      FROM "Enrollment"
+      GROUP BY month
+      ORDER BY month ASC
+      LIMIT 12
+    `;
+
+    const formattedResult = result.map((item) => {
+      const date = new Date(item.month);
+      return {
+        month: date.toLocaleDateString("en-US", { month: "short", year: "2-digit" }),
+        enrollments: item.enrollments
+      };
+    });
+
+    res.json(formattedResult);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error retrieving monthly trend." });
+  }
+});
+
+// GET PLATFORM SETTINGS
+router.get("/settings", auth, requireAdmin, async (req, res) => {
+  try {
+    const settings = await prisma.setting.findMany();
+    res.json(Object.fromEntries(settings.map((s) => [s.key, s.value])));
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error retrieving settings." });
+  }
+});
+
+// PATCH PLATFORM SETTINGS
+router.patch("/settings", auth, requireAdmin, async (req, res) => {
+  try {
+    const updates = req.body;
+    if (!updates || typeof updates !== "object") {
+      return res.status(400).json({ error: "Invalid updates format." });
+    }
+
+    const ops = Object.entries(updates).map(([key, value]) =>
+      prisma.setting.upsert({
+        where: { key },
+        update: { value: String(value) },
+        create: { key, value: String(value) }
+      })
+    );
+
+    await Promise.all(ops);
+    res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error saving settings." });
   }
 });
 

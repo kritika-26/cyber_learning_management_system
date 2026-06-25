@@ -6,6 +6,9 @@ import { authFetch } from "../utils/api";
 import {
   BarChart,
   Bar,
+  LineChart,
+  Line,
+  CartesianGrid,
   XAxis,
   YAxis,
   Tooltip,
@@ -14,18 +17,26 @@ import {
 
 function PlatformAnalytics() {
   const [analytics, setAnalytics] = useState(null);
+  const [monthlyData, setMonthlyData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
   useEffect(() => {
-    authFetch("/admin/analytics")
+    const fetchAnalytics = authFetch("/admin/analytics")
       .then((res) => {
         if (!res.ok) throw new Error("Could not load platform analytics");
         return res.json();
       })
-      .then((data) => {
-        setAnalytics(data);
+      .then((data) => setAnalytics(data));
+
+    const fetchMonthly = authFetch("/admin/analytics/monthly")
+      .then((res) => {
+        if (!res.ok) throw new Error("Could not load monthly analytics");
+        return res.json();
       })
+      .then((data) => setMonthlyData(data));
+
+    Promise.all([fetchAnalytics, fetchMonthly])
       .catch((err) => {
         console.error(err);
         setError("Error fetching admin platform metrics.");
@@ -35,7 +46,6 @@ function PlatformAnalytics() {
       });
   }, []);
 
-  // Standard chart fallback data, but we can augment it with our live statistics!
   const getChartData = () => {
     if (!analytics) return [];
     return [
@@ -88,23 +98,45 @@ function PlatformAnalytics() {
               </div>
             </div>
 
-            <div className="chart-container" style={{ marginTop: "30px" }}>
-              <h2>System Resource Distribution</h2>
+            <div style={{ display: "flex", flexDirection: "column", gap: "30px", marginTop: "30px" }}>
+              <div className="chart-container">
+                <h2>System Resource Distribution</h2>
 
-              <ResponsiveContainer width="100%" height={350}>
-                <BarChart data={getChartData()} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
-                  <XAxis dataKey="name" stroke="#a1a1aa" />
-                  <YAxis stroke="#a1a1aa" />
-                  <Tooltip
-                    contentStyle={{
-                      background: "#181821",
-                      border: "1px solid rgba(255,255,255,0.08)",
-                      color: "#fff",
-                    }}
-                  />
-                  <Bar dataKey="count" fill="#C48A52" radius={[8, 8, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
+                <ResponsiveContainer width="100%" height={350}>
+                  <BarChart data={getChartData()} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
+                    <XAxis dataKey="name" stroke="#a1a1aa" />
+                    <YAxis stroke="#a1a1aa" />
+                    <Tooltip
+                      contentStyle={{
+                        background: "#181821",
+                        border: "1px solid rgba(255,255,255,0.08)",
+                        color: "#fff",
+                      }}
+                    />
+                    <Bar dataKey="count" fill="#C48A52" radius={[8, 8, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+
+              <div className="chart-container">
+                <h2>Monthly Enrollment Growth Trend</h2>
+
+                <ResponsiveContainer width="100%" height={350}>
+                  <LineChart data={monthlyData} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+                    <XAxis dataKey="month" stroke="#a1a1aa" />
+                    <YAxis stroke="#a1a1aa" />
+                    <Tooltip
+                      contentStyle={{
+                        background: "#181821",
+                        border: "1px solid rgba(255,255,255,0.08)",
+                        color: "#fff",
+                      }}
+                    />
+                    <Line type="monotone" dataKey="enrollments" stroke="#00f5ff" strokeWidth={3} dot={{ fill: "#00f5ff" }} />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
             </div>
           </>
         )}

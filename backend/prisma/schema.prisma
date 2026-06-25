@@ -13,6 +13,7 @@ model User {
   passwordHash      String
   mobile            String?
   role              Role               @default(STUDENT)
+  isActive          Boolean            @default(true)
   createdAt         DateTime           @default(now())
   enrollments       Enrollment[]
   progress          Progress[]
@@ -21,7 +22,7 @@ model User {
 }
 
 model Course {
-  id           Int          @id @default(autoincrement())
+  id           Int           @id @default(autoincrement())
   title        String
   description  String
   tag          String
@@ -30,11 +31,12 @@ model Course {
   totalLessons Int
   instructor   String
   instructorId Int?
-  approved     Boolean      @default(false)
-  createdAt    DateTime     @default(now())
+  approved     Boolean       @default(false)
+  createdAt    DateTime      @default(now())
   modules      Module[]
   enrollments  Enrollment[]
   progress     Progress[]
+  certificates Certificate[]
 }
 
 model Module {
@@ -87,6 +89,13 @@ model Certificate {
   courseId Int
   issuedAt DateTime @default(now())
   user     User     @relation(fields: [userId], references: [id])
+  course   Course   @relation(fields: [courseId], references: [id])
+}
+
+model Setting {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
 }
 
 enum Role {

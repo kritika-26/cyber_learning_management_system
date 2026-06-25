@@ -9,18 +9,28 @@ function UserManagement() {
   const { user: currentUser } = useAuth();
   const [users, setUsers] = useState([]);
   const [filter, setFilter] = useState("All");
+  const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  const fetchUsers = () => {
+  const fetchUsers = (selectedFilter = filter, searchQuery = search) => {
     setLoading(true);
-    authFetch("/admin/users")
+    let roleParam = "";
+    if (selectedFilter === "Student") roleParam = "STUDENT";
+    if (selectedFilter === "Instructor") roleParam = "INSTRUCTOR";
+    if (selectedFilter === "Admin") roleParam = "ADMIN";
+
+    let url = `/admin/users?page=1&limit=100`;
+    if (roleParam) url += `&role=${roleParam}`;
+    if (searchQuery) url += `&search=${encodeURIComponent(searchQuery)}`;
+
+    authFetch(url)
       .then((res) => {
         if (!res.ok) throw new Error("Failed to load users list");
         return res.json();
       })
       .then((data) => {
-        setUsers(data);
+        setUsers(data.users || data);
       })
       .catch((err) => {
         console.error(err);
@@ -32,8 +42,8 @@ function UserManagement() {
   };
 
   useEffect(() => {
-    fetchUsers();
-  }, []);
+    fetchUsers(filter, search);
+  }, [filter, search]);
 
   const handleRoleChange = async (userId, newRole) => {
     try {
@@ -43,13 +53,33 @@ function UserManagement() {
       });
 
       if (res.ok) {
-        fetchUsers();
+        fetchUsers(filter, search);
       } else {
         alert("Failed to update user role.");
       }
     } catch (err) {
       console.error(err);
       alert("Error changing user role.");
+    }
+  };
+
+  const handleToggleStatus = async (userId, currentStatus) => {
+    try {
+      const res = await authFetch(`/admin/users/${userId}/status`, {
+        method: "PATCH",
+        body: JSON.stringify({ isActive: !currentStatus }),
+      });
+
+      if (res.ok) {
+        setUsers((prev) =>
+          prev.map((u) => (u.id === userId ? { ...u, isActive: !currentStatus } : u))
+        );
+      } else {
+        alert("Failed to update user status.");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Error toggling user status.");
     }
   };
 
@@ -70,7 +100,7 @@ function UserManagement() {
         });
 
         if (res.ok) {
-          fetchUsers();
+          fetchUsers(filter, search);
         } else {
           alert("Failed to delete user.");
         }
@@ -81,10 +111,7 @@ function UserManagement() {
     }
   };
 
-  const filteredUsers =
-    filter === "All"
-      ? users
-      : users.filter((u) => u.role.toLowerCase() === filter.toLowerCase());
+  const filteredUsers = users;
 
   return (
     <div className="admin-page">
@@ -95,7 +122,7 @@ function UserManagement() {
 
         <h1 className="page-title">User Management</h1>
 
-        <div className="user-filter">
+        <div className="user-filter" style={{ display: "flex", gap: "10px", alignItems: "center", flexWrap: "wrap", marginBottom: "20px" }}>
           <button
             className={filter === "All" ? "active-filter" : ""}
             onClick={() => setFilter("All")}
@@ -116,6 +143,23 @@ function UserManagement() {
           >
             Instructors
           </button>
+
+          <input
+            type="text"
+            placeholder="Search users by name or email..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            style={{
+              padding: "10px 16px",
+              background: "#181821",
+              border: "1px solid rgba(255,255,255,0.08)",
+              borderRadius: "8px",
+              color: "#fff",
+              outline: "none",
+              minWidth: "250px",
+              marginLeft: "auto"
+            }}
+          />
         </div>
 
         {loading ? (
@@ -135,7 +179,22 @@ function UserManagement() {
             ) : (
               filteredUsers.map((u) => (
                 <div className="user-card" key={u.id}>
-                  <h3>{u.name}</h3>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <h3>{u.name}</h3>
+                    <span
+                      style={{
+                        padding: "2px 8px",
+                        borderRadius: "12px",
+                        fontSize: "11px",
+                        fontWeight: "bold",
+                        background: u.isActive ? "rgba(16, 185, 129, 0.15)" : "rgba(239, 68, 68, 0.15)",
+                        color: u.isActive ? "#10b981" : "#ef4444"
+                      }}
+                    >
+                      {u.isActive ? "Active" : "Inactive"}
+                    </span>
+                  </div>
+                  
                   <p>
                     <strong>Email:</strong> {u.email}
                   </p>
@@ -163,7 +222,24 @@ function UserManagement() {
                     </select>
                   </div>
 
-                  <div className="user-actions" style={{ marginTop: "16px" }}>
+                  <div className="user-actions" style={{ marginTop: "16px", display: "flex", flexDirection: "column", gap: "8px" }}>
+                    <button
+                      className="status-btn"
+                      onClick={() => handleToggleStatus(u.id, u.isActive)}
+                      style={{
+                        width: "100%",
+                        padding: "8px",
+                        background: u.isActive ? "#d97706" : "#059669",
+                        color: "#fff",
+                        border: "none",
+                        borderRadius: "8px",
+                        cursor: "pointer",
+                        fontWeight: "bold"
+                      }}
+                    >
+                      {u.isActive ? "Deactivate Account" : "Activate Account"}
+                    </button>
+
                     <button
                       className="delete-btn"
                       onClick={() => handleDelete(u.id)}

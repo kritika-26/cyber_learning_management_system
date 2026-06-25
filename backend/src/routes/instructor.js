@@ -278,4 +278,46 @@ router.get("/courses/:id/students", auth, requireInstructor, async (req, res) =>
   }
 });
 
+// GET INSTRUCTOR ANALYTICS
+router.get("/analytics", auth, requireInstructor, async (req, res) => {
+  try {
+    const courses = await prisma.course.findMany({
+      where: { instructorId: req.user.id },
+      include: {
+        enrollments: true,
+        modules: true,
+        progress: true,
+        certificates: true
+      }
+    });
+
+    const stats = courses.map((course) => {
+      const totalModules = course.modules.length;
+      const avgCompletion = course.enrollments.length
+        ? (course.enrollments.reduce((sum, e) => {
+            const p = course.progress.find((prog) => prog.userId === e.userId);
+            const done = p ? p.completedLessons : 0;
+            return sum + (totalModules ? done / totalModules : 0);
+          }, 0) /
+            course.enrollments.length) *
+          100
+        : 0;
+
+      return {
+        courseId: course.id,
+        title: course.title,
+        enrolledCount: course.enrollments.length,
+        avgCompletionPercent: Math.round(avgCompletion),
+        certificatesIssued: course.certificates.length
+      };
+    });
+
+    res.json(stats);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error retrieving instructor analytics." });
+  }
+});
+
 export default router;
+
