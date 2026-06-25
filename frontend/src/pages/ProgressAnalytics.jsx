@@ -14,6 +14,7 @@ function ProgressAnalytics() {
   // Dynamic user stats state
   const [certificatesCount, setCertificatesCount] = useState(0);
   const [courseProgressMap, setCourseProgressMap] = useState({}); // { courseId: completedLessonsCount }
+  const [completionsHistory, setCompletionsHistory] = useState([]);
   const [statsLoading, setStatsLoading] = useState(true);
 
   // Fetch certificates count on mount
@@ -26,6 +27,18 @@ function ProgressAnalytics() {
       .then((data) => setCertificatesCount(data ? data.length : 0))
       .catch((err) => console.error("Error loading certificates:", err));
   }, []);
+
+  // Fetch weekly module completions history
+  useEffect(() => {
+    authFetch("/courses/activity/weekly")
+      .then((res) => {
+        if (res.ok) return res.json();
+        throw new Error();
+      })
+      .then((data) => setCompletionsHistory(data || []))
+      .catch((err) => console.error("Error loading activity history:", err));
+  }, []);
+
 
   // Fetch detailed completions progress for all enrolled courses
   useEffect(() => {
@@ -143,15 +156,47 @@ function ProgressAnalytics() {
         { id: "sample-4", title: "Web App Penetration Testing", pct: 90 }
       ];
 
-  const weeklyActivityData = [
-    { day: "MON", level: "high", hours: "2.5", label: "2.5h" },
-    { day: "TUE", level: "medium", hours: "1.2", label: "1.2h" },
-    { day: "WED", level: "low", hours: "0.2", label: "0.2h" },
-    { day: "THU", level: "high", hours: "3.5", label: "3.5h" },
-    { day: "FRI", level: "medium", hours: "1.8", label: "1.8h" },
-    { day: "SAT", level: "high", hours: "4.0", label: "4.0h" },
-    { day: "SUN", level: "low", hours: "0.5", label: "0.5h" }
-  ];
+  // Group real module completion timestamps by weekday of current week
+  const getStartOfWeek = () => {
+    const d = new Date();
+    const day = d.getDay();
+    const diff = d.getDate() - day + (day === 0 ? -6 : 1); // Monday is start of week
+    const monday = new Date(d.setDate(diff));
+    monday.setHours(0, 0, 0, 0);
+    return monday;
+  };
+
+  const startOfWeek = getStartOfWeek();
+
+  const weeklyActivityData = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"].map((dayName, index) => {
+    const targetDate = new Date(startOfWeek);
+    targetDate.setDate(startOfWeek.getDate() + index);
+    const targetDateString = targetDate.toDateString();
+
+    const completionsOnDay = completionsHistory.filter((c) => {
+      const completionDate = new Date(c.createdAt);
+      return completionDate.toDateString() === targetDateString;
+    }).length;
+
+    let level = "low";
+    let hours = "0.0";
+    let label = "0h";
+
+    if (completionsOnDay > 0) {
+      const hrsVal = completionsOnDay * 1.5;
+      hours = hrsVal.toFixed(1);
+      label = `${hours}h`;
+      level = completionsOnDay >= 2 ? "high" : "medium";
+    }
+
+    return {
+      day: dayName,
+      level,
+      hours,
+      label
+    };
+  });
+
 
   return (
     <div className="progress-page">

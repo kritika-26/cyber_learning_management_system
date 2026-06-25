@@ -52,6 +52,20 @@ router.get("/enrolled", auth, async (req, res) => {
   }
 });
 
+// GET USER'S WEEKLY ACTIVITY COMPLETIONS
+router.get("/activity/weekly", auth, async (req, res) => {
+  try {
+    const completions = await prisma.moduleCompletion.findMany({
+      where: { userId: req.user.id },
+      select: { createdAt: true }
+    });
+    res.json(completions);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error retrieving weekly activity." });
+  }
+});
+
 // GET USER'S CERTIFICATES
 router.get("/certificates", auth, async (req, res) => {
   try {
