@@ -3,6 +3,7 @@ import "../styles/StudentDashboard.css";
 import Sidebar from "../components/Sidebar";
 import Topbar from "../components/Topbar";
 import Footer from "../components/Footer";
+import PlatformTour from "../components/PlatformTour";
 
 import cyberSecurity from "../assets/Cyber_Security.jpeg";
 import ethicalHacking from "../assets/Ethical_Hacking.jpeg";
@@ -36,7 +37,7 @@ function StudentDashboard() {
   const [statsLoading, setStatsLoading] = useState(true);
 
   // Guided Tour State
-  const [tourStep, setTourStep] = useState(-1);
+  const [showTour, setShowTour] = useState(false);
 
   // Fetch certificates on mount
   useEffect(() => {
@@ -48,11 +49,13 @@ function StudentDashboard() {
       .then((data) => setCertificatesCount(data ? data.length : 0))
       .catch((err) => console.error("Error loading certificates:", err));
 
-    // Show onboarding tour automatically if not completed before
+    // Show onboarding tour automatically if not completed before OR triggered by registration
+    const tourFlag = localStorage.getItem("show_platform_tour");
     const completed = localStorage.getItem("lms_tour_completed");
-    if (!completed) {
+    if (tourFlag === "true" || !completed) {
+      localStorage.removeItem("show_platform_tour"); // Consume flag
       const timer = setTimeout(() => {
-        setTourStep(0);
+        setShowTour(true);
       }, 1000);
       return () => clearTimeout(timer);
     }
@@ -112,46 +115,8 @@ function StudentDashboard() {
     return total > 0 ? ((completed / total) * 100).toFixed(0) : "0";
   };
 
-  // Onboarding Guided steps
-  const tourGuides = [
-    {
-      title: "🛡 Welcome to Shourya CommandCenter!",
-      desc: "Welcome to Shourya Cybersecurity Academy! This is your control center where you can view your total experience points (XP), active learning streak, and progress across all enrolled tracks.",
-    },
-    {
-      title: "📚 Browse Platform Courses",
-      desc: "Scroll down to browse all of our active cybersecurity and programming tracks. Click on any course to see its dynamic curriculum, modules list, and expert instructor guides.",
-    },
-    {
-      title: "⚡ Single-Click Enrollment",
-      desc: "Inside any course details page, click 'Enroll in Course' to immediately unlock the modules, set up your learning progress tracker, and start studying.",
-    },
-    {
-      title: "🎥 Learn and Mark Completed",
-      desc: "Click 'Start Learning' to play dynamic video lectures, review course cheat sheets, and check off completed lesson modules to advance your learning progress.",
-    },
-    {
-      title: "🏆 Download Verified PDFs",
-      desc: "Once you hit 100% completion in a course, a secure certificate of completion is auto-generated. Go to 'My Certificates' in the sidebar to download it as a high-quality PDF!",
-    },
-  ];
-
-  const handleNextStep = () => {
-    if (tourStep < 4) {
-      setTourStep((prev) => prev + 1);
-    } else {
-      localStorage.setItem("lms_tour_completed", "true");
-      setTourStep(-1);
-    }
-  };
-
-  const handleSkipTour = () => {
-    localStorage.setItem("lms_tour_completed", "true");
-    setTourStep(-1);
-  };
-
   const handleRestartTour = () => {
-    setTourStep(0);
+    setShowTour(true);
   };
 
   return (
@@ -309,87 +274,8 @@ function StudentDashboard() {
         <Footer />
       </div>
 
-      {/* Guided Platform Tour Popup */}
-      {tourStep >= 0 && (
-        <div
-          style={{
-            position: "fixed",
-            top: 0,
-            left: 0,
-            width: "100vw",
-            height: "100vh",
-            background: "rgba(10, 15, 29, 0.8)",
-            backdropFilter: "blur(4px)",
-            zIndex: 99999,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            padding: "20px",
-          }}
-        >
-          <div
-            style={{
-              maxWidth: "500px",
-              background: "#12121a",
-              border: "2px solid #C48A52",
-              borderRadius: "20px",
-              padding: "30px",
-              boxShadow: "0 15px 50px rgba(0, 0, 0, 0.6)",
-              textAlign: "center",
-            }}
-          >
-            <h2 style={{ color: "#C48A52", marginBottom: "15px", fontSize: "24px", fontWeight: "700" }}>
-              {tourGuides[tourStep].title}
-            </h2>
-            <p style={{ color: "#cbd5e1", fontSize: "15px", lineHeight: "1.6", marginBottom: "25px" }}>
-              {tourGuides[tourStep].desc}
-            </p>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <button
-                onClick={handleSkipTour}
-                style={{
-                  background: "transparent",
-                  border: "none",
-                  color: "#6b7280",
-                  cursor: "pointer",
-                  fontWeight: "600",
-                  fontSize: "14px",
-                }}
-              >
-                Skip Tour
-              </button>
-              <div style={{ display: "flex", gap: "6px" }}>
-                {[0, 1, 2, 3, 4].map((idx) => (
-                  <div
-                    key={idx}
-                    style={{
-                      width: "8px",
-                      height: "8px",
-                      borderRadius: "50%",
-                      background: idx === tourStep ? "#C48A52" : "#374151",
-                    }}
-                  ></div>
-                ))}
-              </div>
-              <button
-                onClick={handleNextStep}
-                style={{
-                  background: "#C48A52",
-                  border: "none",
-                  color: "#fff",
-                  padding: "10px 20px",
-                  borderRadius: "8px",
-                  fontWeight: "600",
-                  cursor: "pointer",
-                  fontSize: "14px",
-                }}
-              >
-                {tourStep === 4 ? "Get Started ✓" : "Next Step →"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Guided Platform Tour */}
+      {showTour && <PlatformTour onClose={() => setShowTour(false)} />}
     </div>
   );
 }

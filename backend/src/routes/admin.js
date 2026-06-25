@@ -101,15 +101,22 @@ router.patch("/users/:id/role", auth, requireAdmin, validate(roleSchema), async 
 router.patch("/users/:id/status", auth, requireAdmin, async (req, res) => {
   try {
     const { id } = req.params;
-    const { isActive } = req.body;
+    const body = req.body || {};
 
-    if (isActive === undefined) {
-      return res.status(400).json({ error: "isActive field is required." });
+    const existingUser = await prisma.user.findUnique({
+      where: { id: parseInt(id) },
+      select: { isActive: true }
+    });
+
+    if (!existingUser) {
+      return res.status(404).json({ error: "User not found." });
     }
+
+    const nextStatus = body.isActive !== undefined ? !!body.isActive : !existingUser.isActive;
 
     const user = await prisma.user.update({
       where: { id: parseInt(id) },
-      data: { isActive: !!isActive },
+      data: { isActive: nextStatus },
       select: {
         id: true,
         name: true,
@@ -284,18 +291,39 @@ router.get("/analytics/monthly", auth, requireAdmin, async (req, res) => {
   }
 });
 
-// GET PLATFORM SETTINGS
+// GET PLATFORM SETTINGS (Returns array of settings)
 router.get("/settings", auth, requireAdmin, async (req, res) => {
   try {
     const settings = await prisma.setting.findMany();
-    res.json(Object.fromEntries(settings.map((s) => [s.key, s.value])));
+    res.json(settings);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Server error retrieving settings." });
   }
 });
 
-// PATCH PLATFORM SETTINGS
+// PATCH PLATFORM SETTING BY KEY
+router.patch("/settings/:key", auth, requireAdmin, async (req, res) => {
+  try {
+    const { key } = req.params;
+    const { value } = req.body;
+    if (value === undefined) {
+      return res.status(400).json({ error: "value is required." });
+    }
+
+    const setting = await prisma.setting.upsert({
+      where: { key },
+      update: { value: String(value) },
+      create: { key, value: String(value) }
+    });
+    res.json(setting);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error saving setting." });
+  }
+});
+
+// PATCH PLATFORM SETTINGS BULK
 router.patch("/settings", auth, requireAdmin, async (req, res) => {
   try {
     const updates = req.body;

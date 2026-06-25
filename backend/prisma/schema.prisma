@@ -12,6 +12,7 @@ model User {
   email             String             @unique
   passwordHash      String
   mobile            String?
+  avatar            String?
   role              Role               @default(STUDENT)
   isActive          Boolean            @default(true)
   createdAt         DateTime           @default(now())
@@ -19,6 +20,16 @@ model User {
   progress          Progress[]
   certificates      Certificate[]
   moduleCompletions ModuleCompletion[]
+  refreshTokens     RefreshToken[]
+}
+
+model RefreshToken {
+  id        Int      @id @default(autoincrement())
+  token     String   @unique
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  expiresAt DateTime
 }
 
 model Course {
@@ -46,6 +57,7 @@ model Module {
   courseId    Int
   course      Course             @relation(fields: [courseId], references: [id])
   completions ModuleCompletion[]
+  resources   Resource[]
 }
 
 model ModuleCompletion {
@@ -93,9 +105,20 @@ model Certificate {
 }
 
 model Setting {
-  key       String   @id
+  id        String   @id @default(uuid())
+  key       String   @unique
   value     String
   updatedAt DateTime @updatedAt
+}
+
+model Resource {
+  id        String   @id @default(uuid())
+  moduleId  Int
+  module    Module   @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  title     String
+  fileUrl   String
+  fileType  String   // "pdf", "doc", "link"
+  createdAt DateTime @default(now())
 }
 
 enum Role {

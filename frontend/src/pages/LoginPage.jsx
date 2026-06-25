@@ -46,7 +46,7 @@ function LoginPage() {
         throw new Error(data.error || data.message || "Login failed");
       }
 
-      login(data.token, data.user);
+      login(data.token, data.refreshToken, data.user);
 
       const role = data.user.role.toLowerCase();
       if (role === "admin") {

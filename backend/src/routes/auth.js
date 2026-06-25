@@ -7,6 +7,33 @@ import validate from "../middleware/validate.js";
 
 const router = Router();
 
+const generateTokens = async (user) => {
+  const token = jwt.sign(
+    { id: user.id, email: user.email, role: user.role },
+    process.env.JWT_SECRET || "cyber-lms-super-secret-key-change-me",
+    { expiresIn: "15m" }
+  );
+
+  const refreshToken = jwt.sign(
+    { id: user.id, salt: Math.random().toString(36).substring(2) + Date.now() },
+    process.env.JWT_REFRESH_SECRET || "cyber-lms-super-secret-refresh-key-change-me",
+    { expiresIn: "7d" }
+  );
+
+  const expiresAt = new Date();
+  expiresAt.setDate(expiresAt.getDate() + 7);
+
+  await prisma.refreshToken.create({
+    data: {
+      token: refreshToken,
+      userId: user.id,
+      expiresAt
+    }
+  });
+
+  return { token, refreshToken };
+};
+
 const registerSchema = z.object({
   name: z.string().trim().min(1, "Name is required"),
   email: z.string().trim().toLowerCase().email("Invalid email format"),
@@ -45,14 +72,11 @@ router.post("/register", validate(registerSchema), async (req, res) => {
       }
     });
 
-    const token = jwt.sign(
-      { id: user.id, email: user.email, role: user.role },
-      process.env.JWT_SECRET || "cyber-lms-super-secret-key-change-me",
-      { expiresIn: "7d" }
-    );
+    const { token, refreshToken } = await generateTokens(user);
 
     res.status(201).json({
       token,
+      refreshToken,
       user: {
         id: user.id,
         name: user.name,
@@ -85,14 +109,11 @@ router.post("/login", validate(loginSchema), async (req, res) => {
       return res.status(400).json({ error: "Invalid credentials." });
     }
 
-    const token = jwt.sign(
-      { id: user.id, email: user.email, role: user.role },
-      process.env.JWT_SECRET || "cyber-lms-super-secret-key-change-me",
-      { expiresIn: "7d" }
-    );
+    const { token, refreshToken } = await generateTokens(user);
 
     res.json({
       token,
+      refreshToken,
       user: {
         id: user.id,
         name: user.name,
@@ -104,6 +125,75 @@ router.post("/login", validate(loginSchema), async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Server error during login." });
+  }
+});
+
+// REFRESH TOKEN
+router.post("/refresh", async (req, res) => {
+  try {
+    const { refreshToken } = req.body;
+    if (!refreshToken) {
+      return res.status(400).json({ error: "Refresh token is required." });
+    }
+
+    let payload;
+    try {
+      payload = jwt.verify(
+        refreshToken,
+        process.env.JWT_REFRESH_SECRET || "cyber-lms-super-secret-refresh-key-change-me"
+      );
+    } catch (err) {
+      return res.status(401).json({ error: "Invalid or expired refresh token." });
+    }
+
+    const dbToken = await prisma.refreshToken.findUnique({
+      where: { token: refreshToken }
+    });
+
+    if (!dbToken) {
+      await prisma.refreshToken.deleteMany({
+        where: { userId: payload.id }
+      });
+      return res.status(403).json({ error: "Compromised session. Please log in again." });
+    }
+
+    if (dbToken.expiresAt < new Date()) {
+      await prisma.refreshToken.delete({ where: { token: refreshToken } });
+      return res.status(401).json({ error: "Refresh token has expired." });
+    }
+
+    await prisma.refreshToken.delete({ where: { token: refreshToken } });
+
+    const user = await prisma.user.findUnique({
+      where: { id: payload.id }
+    });
+
+    if (!user || !user.isActive) {
+      return res.status(401).json({ error: "User is disabled or not found." });
+    }
+
+    const { token: newToken, refreshToken: newRefreshToken } = await generateTokens(user);
+
+    res.json({ token: newToken, refreshToken: newRefreshToken });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error during token refresh." });
+  }
+});
+
+// LOGOUT
+router.post("/logout", async (req, res) => {
+  try {
+    const { refreshToken } = req.body;
+    if (refreshToken) {
+      await prisma.refreshToken.deleteMany({
+        where: { token: refreshToken }
+      });
+    }
+    res.json({ message: "Successfully logged out." });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error during logout." });
   }
 });
 

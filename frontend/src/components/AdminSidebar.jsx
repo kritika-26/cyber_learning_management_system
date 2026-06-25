@@ -41,15 +41,13 @@ function AdminSidebar() {
 
         <div className="sidebar-header" style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%" }}>
-            {!collapsed && (
-              <div>
-                <h1>INTEXIA</h1>
-                <p style={{ fontSize: "12px", color: "#8b94a7" }}>Cyber Learning Hub</p>
-              </div>
-            )}
+            <div className="sidebar-brand-wrapper">
+              <h1>INTEXIA</h1>
+              <p style={{ fontSize: "12px", color: "#8b94a7" }}>Cyber Learning Hub</p>
+            </div>
             <FaBars
               onClick={() => setCollapsed(!collapsed)}
-              style={{ cursor: "pointer", fontSize: "20px", color: "#C48A52", margin: collapsed ? "0 auto" : "0" }}
+              className="sidebar-toggle-icon"
             />
           </div>
         </div>

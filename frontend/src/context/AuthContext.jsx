@@ -15,7 +15,7 @@ export const AuthProvider = ({ children }) => {
     }
   }, []);
 
-  const login = (token, userData) => {
+  const login = (token, refreshToken, userData) => {
     const safeUser = {
       id: userData.id,
       name: userData.name || "",
@@ -25,12 +25,26 @@ export const AuthProvider = ({ children }) => {
     };
 
     localStorage.setItem(AUTH_KEY, token);
+    if (refreshToken) {
+      localStorage.setItem("lms_refresh_token", refreshToken);
+    }
     localStorage.setItem("user", JSON.stringify(safeUser));
     setUser(safeUser);
   };
 
   const logout = () => {
+    const refreshToken = localStorage.getItem("lms_refresh_token");
+    if (refreshToken) {
+      const rawBase = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+      const BASE = rawBase.endsWith("/api") ? rawBase : `${rawBase}/api`;
+      fetch(`${BASE}/auth/logout`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ refreshToken }),
+      }).catch((err) => console.error("Error during server logout:", err));
+    }
     localStorage.removeItem(AUTH_KEY);
+    localStorage.removeItem("lms_refresh_token");
     localStorage.removeItem("user");
     setUser(null);
   };

@@ -82,7 +82,8 @@ function RegisterPage() {
         throw new Error(data.error || data.message || "Registration failed");
       }
 
-      login(data.token, data.user);
+      login(data.token, data.refreshToken, data.user);
+      localStorage.setItem("show_platform_tour", "true");
       setLoading(false);
       navigate("/student-dashboard");
     } catch (err) {

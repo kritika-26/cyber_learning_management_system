@@ -42,7 +42,15 @@ return ( <div className="topbar">
     <div className="user-profile">
 
       <div className="avatar">
-        {(user?.name?.charAt(0) || "S").toUpperCase()}
+        {user?.avatar ? (
+          <img 
+            src={user.avatar.startsWith("http") ? user.avatar : `${(import.meta.env.VITE_API_URL || "http://localhost:5000/api").replace("/api", "")}${user.avatar}`} 
+            alt="Avatar" 
+            style={{ width: "100%", height: "100%", borderRadius: "50%", objectFit: "cover" }} 
+          />
+        ) : (
+          (user?.name?.charAt(0) || "S").toUpperCase()
+        )}
       </div>
 
       <div className="user-info">

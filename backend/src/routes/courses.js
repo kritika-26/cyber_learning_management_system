@@ -4,6 +4,8 @@ import PDFDocument from "pdfkit";
 import { prisma } from "../lib/prisma.js";
 import auth from "../middleware/auth.js";
 import validate from "../middleware/validate.js";
+import { sendEmail } from "../utils/mailer.js";
+import { upload } from "../utils/cloudinary.js";
 
 
 
@@ -156,6 +158,29 @@ router.post("/:id/enroll", auth, async (req, res) => {
       })
     ]);
 
+    // Send Enrollment Confirmation Email (Non-blocking)
+    prisma.user.findUnique({ where: { id: req.user.id } })
+      .then((user) => {
+        if (user) {
+          sendEmail({
+            to: user.email,
+            subject: `Enrollment Confirmed: ${course.title}`,
+            html: `
+              <div style="font-family: sans-serif; max-width: 600px; padding: 20px; background-color: #070B14; color: #F5F7FA; border: 1px solid #00F5FF; border-radius: 12px;">
+                <h2 style="color: #00F5FF; border-bottom: 1px solid rgba(124, 92, 255, 0.15); padding-bottom: 10px; margin-bottom: 20px;">INTEXIA Platform</h2>
+                <p>Hi ${user.name || "Student"},</p>
+                <p>You have successfully enrolled in <strong>${course.title}</strong>!</p>
+                <p>Your learning tracker has been initialized. Complete all modules of this course to earn your verified certificate of completion.</p>
+                <br/>
+                <a href="${process.env.FRONTEND_URL || "http://localhost:5173"}/my-courses" style="display: inline-block; padding: 12px 24px; background: linear-gradient(135deg, #D946EF, #00E5FF); color: #fff; text-decoration: none; border-radius: 8px; font-weight: bold;">Start Learning Now</a>
+                <p style="margin-top: 30px; font-size: 12px; color: #8b94a7;">Need help? Contact support@intexia.com</p>
+              </div>
+            `
+          });
+        }
+      })
+      .catch((err) => console.error("Error sending enrollment email:", err));
+
     res.status(201).json({ message: "Successfully enrolled in course." });
   } catch (err) {
     console.error(err);
@@ -306,6 +331,32 @@ router.post("/:id/progress", auth, validate(progressSchema), async (req, res) =>
             courseId
           }
         });
+
+        // Trigger Certificate Ready Email (Non-blocking)
+        Promise.all([
+          prisma.user.findUnique({ where: { id: req.user.id } }),
+          prisma.course.findUnique({ where: { id: courseId } })
+        ])
+          .then(([user, courseItem]) => {
+            if (user && courseItem) {
+              sendEmail({
+                to: user.email,
+                subject: `Certificate Ready: ${courseItem.title}`,
+                html: `
+                  <div style="font-family: sans-serif; max-width: 600px; padding: 20px; background-color: #070B14; color: #F5F7FA; border: 1px solid #00F5FF; border-radius: 12px;">
+                    <h2 style="color: #00F5FF; border-bottom: 1px solid rgba(124, 92, 255, 0.15); padding-bottom: 10px; margin-bottom: 20px;">INTEXIA Platform</h2>
+                    <p>Hi ${user.name || "Student"},</p>
+                    <p>Congratulations! You have successfully completed the course <strong>${courseItem.title}</strong>!</p>
+                    <p>Your official, verified certificate of completion has been generated and is ready for download.</p>
+                    <br/>
+                    <a href="${process.env.FRONTEND_URL || "http://localhost:5173"}/certificates" style="display: inline-block; padding: 12px 24px; background: linear-gradient(135deg, #D946EF, #00E5FF); color: #fff; text-decoration: none; border-radius: 8px; font-weight: bold;">Download Certificate (PDF)</a>
+                    <p style="margin-top: 30px; font-size: 12px; color: #8b94a7;">Need help? Contact support@intexia.com</p>
+                  </div>
+                `
+              });
+            }
+          })
+          .catch((err) => console.error("Error sending certificate email:", err));
       }
     }
 
@@ -375,6 +426,212 @@ router.get("/certificates/:id/download", auth, async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Server error generating certificate PDF." });
+  }
+});
+
+// UPLOAD A RESOURCE TO A MODULE
+router.post(
+  "/:courseId/modules/:moduleId/resources",
+  auth,
+  upload.single("file"),
+  async (req, res) => {
+    try {
+      const courseId = parseInt(req.params.courseId);
+      const moduleId = parseInt(req.params.moduleId);
+
+      if (isNaN(courseId) || isNaN(moduleId)) {
+        return res.status(400).json({ error: "Invalid course ID or module ID." });
+      }
+
+      // Check course ownership
+      const course = await prisma.course.findUnique({
+        where: { id: courseId }
+      });
+
+      if (!course) {
+        return res.status(404).json({ error: "Course not found." });
+      }
+
+      if (req.user.role !== "ADMIN" && course.instructorId !== req.user.id) {
+        return res.status(403).json({ error: "Access denied. Only the course instructor or an administrator can add resources." });
+      }
+
+      const { title, fileType } = req.body;
+      if (!title) {
+        return res.status(400).json({ error: "Resource title is required." });
+      }
+
+      let fileUrl;
+      if (req.file) {
+        if (req.file.path.startsWith("http")) {
+          fileUrl = req.file.path;
+        } else {
+          const cleanPath = req.file.path.replace(/\\/g, "/");
+          fileUrl = cleanPath.startsWith("/") ? cleanPath : `/${cleanPath}`;
+        }
+      } else {
+        return res.status(400).json({ error: "Resource file upload is required." });
+      }
+
+      const resource = await prisma.resource.create({
+        data: {
+          moduleId,
+          title: title.trim(),
+          fileUrl,
+          fileType: fileType || "pdf"
+        }
+      });
+
+      res.status(201).json(resource);
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: "Server error uploading resource." });
+    }
+  }
+);
+
+// GET RESOURCES FOR A MODULE
+router.get("/:courseId/modules/:moduleId/resources", auth, async (req, res) => {
+  try {
+    const courseId = parseInt(req.params.courseId);
+    const moduleId = parseInt(req.params.moduleId);
+
+    if (isNaN(courseId) || isNaN(moduleId)) {
+      return res.status(400).json({ error: "Invalid course ID or module ID." });
+    }
+
+    // Verify course & module exists
+    const moduleItem = await prisma.module.findFirst({
+      where: { id: moduleId, courseId }
+    });
+
+    if (!moduleItem) {
+      return res.status(404).json({ error: "Module not found in this course." });
+    }
+
+    const resources = await prisma.resource.findMany({
+      where: { moduleId }
+    });
+
+    res.json(resources);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error retrieving resources." });
+  }
+});
+
+// POST /:courseId/modules/:moduleId/complete
+router.post("/:courseId/modules/:moduleId/complete", auth, async (req, res) => {
+  try {
+    const courseId = parseInt(req.params.courseId);
+    const moduleId = parseInt(req.params.moduleId);
+
+    if (isNaN(courseId) || isNaN(moduleId)) {
+      return res.status(400).json({ error: "Invalid course ID or module ID." });
+    }
+
+    // 1. Save this module completion
+    await prisma.moduleCompletion.upsert({
+      where: {
+        userId_moduleId: {
+          userId: req.user.id,
+          moduleId
+        }
+      },
+      update: {
+        completed: true
+      },
+      create: {
+        userId: req.user.id,
+        moduleId,
+        completed: true
+      }
+    });
+
+    // Sync to Progress
+    const completions = await prisma.moduleCompletion.findMany({
+      where: {
+        userId: req.user.id,
+        module: { courseId }
+      },
+      select: { moduleId: true }
+    });
+
+    const completedModuleIds = completions.map((c) => c.moduleId);
+
+    await prisma.progress.upsert({
+      where: {
+        userId_courseId: {
+          userId: req.user.id,
+          courseId
+        }
+      },
+      update: {
+        completedLessons: completedModuleIds.length
+      },
+      create: {
+        userId: req.user.id,
+        courseId,
+        completedLessons: completedModuleIds.length
+      }
+    });
+
+    // 2. Check if ALL modules in this course are now complete
+    const allModules = await prisma.module.findMany({
+      where: { courseId }
+    });
+
+    const isCourseComplete = completedModuleIds.length === allModules.length && allModules.length > 0;
+
+    if (isCourseComplete) {
+      // 3. Check certificate doesn't already exist
+      const existingCert = await prisma.certificate.findFirst({
+        where: {
+          userId: req.user.id,
+          courseId
+        }
+      });
+
+      if (!existingCert) {
+        await prisma.certificate.create({
+          data: {
+            userId: req.user.id,
+            courseId
+          }
+        });
+
+        // Trigger Certificate Ready Email (Non-blocking)
+        Promise.all([
+          prisma.user.findUnique({ where: { id: req.user.id } }),
+          prisma.course.findUnique({ where: { id: courseId } })
+        ])
+          .then(([user, courseItem]) => {
+            if (user && courseItem) {
+              sendEmail({
+                to: user.email,
+                subject: `Certificate Ready: ${courseItem.title}`,
+                html: `
+                  <div style="font-family: sans-serif; max-width: 600px; padding: 20px; background-color: #070B14; color: #F5F7FA; border: 1px solid #00F5FF; border-radius: 12px;">
+                    <h2 style="color: #00F5FF; border-bottom: 1px solid rgba(124, 92, 255, 0.15); padding-bottom: 10px; margin-bottom: 20px;">INTEXIA Platform</h2>
+                    <p>Hi ${user.name || "Student"},</p>
+                    <p>Congratulations! You have successfully completed the course <strong>${courseItem.title}</strong>!</p>
+                    <p>Your official, verified certificate of completion has been generated and is ready for download.</p>
+                    <br/>
+                    <a href="${process.env.FRONTEND_URL || "http://localhost:5173"}/certificates" style="display: inline-block; padding: 12px 24px; background: linear-gradient(135deg, #D946EF, #00E5FF); color: #fff; text-decoration: none; border-radius: 8px; font-weight: bold;">Download Certificate (PDF)</a>
+                    <p style="margin-top: 30px; font-size: 12px; color: #8b94a7;">Need help? Contact support@intexia.com</p>
+                  </div>
+                `
+              });
+            }
+          })
+          .catch((err) => console.error("Error sending certificate email:", err));
+      }
+    }
+
+    res.json({ complete: isCourseComplete });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error during module completion." });
   }
 });
 

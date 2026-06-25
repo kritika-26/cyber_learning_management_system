@@ -64,21 +64,54 @@ function Settings() {
     });
   }, [enrolledCourses]);
 
-  const handleProfileUpdate = (e) => {
+  const [avatarFile, setAvatarFile] = useState(null);
+  const [avatarPreview, setAvatarPreview] = useState("");
+
+  const handleAvatarChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      if (file.size > 2 * 1024 * 1024) {
+        alert("File size exceeds 2MB limit.");
+        return;
+      }
+      setAvatarFile(file);
+      setAvatarPreview(URL.createObjectURL(file));
+    }
+  };
+
+  const handleProfileUpdate = async (e) => {
     e.preventDefault();
     if (!formData.name || !formData.email) {
       alert("Name and Email are required.");
       return;
     }
 
-    // Save changes into AuthContext and LocalStorage
-    updateUser({
-      name: formData.name,
-      email: formData.email,
-      mobile: formData.mobile,
-    });
+    try {
+      const form = new FormData();
+      form.append("name", formData.name);
+      form.append("email", formData.email);
+      form.append("mobile", formData.mobile || "");
+      if (avatarFile) {
+        form.append("avatar", avatarFile);
+      }
 
-    alert("Profile updated successfully!");
+      const res = await authFetch(`/users/${user.id}`, {
+        method: "PATCH",
+        body: form,
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to update profile");
+      }
+
+      updateUser(data);
+      setAvatarFile(null);
+      alert("Profile updated successfully!");
+    } catch (err) {
+      console.error(err);
+      alert(err.message);
+    }
   };
 
   const handlePasswordChange = (e) => {
@@ -138,7 +171,33 @@ function Settings() {
           <div className="settings-card">
             <h2>Personal Profile</h2>
 
-            <div className="profile-avatar">{getInitials(formData.name)}</div>
+            <div className="profile-avatar">
+              {avatarPreview ? (
+                <img 
+                  src={avatarPreview} 
+                  alt="Avatar Preview" 
+                  style={{ width: "100%", height: "100%", borderRadius: "50%", objectFit: "cover" }} 
+                />
+              ) : user?.avatar ? (
+                <img 
+                  src={user.avatar.startsWith("http") ? user.avatar : `${(import.meta.env.VITE_API_URL || "http://localhost:5000/api").replace("/api", "")}${user.avatar}`} 
+                  alt="Avatar" 
+                  style={{ width: "100%", height: "100%", borderRadius: "50%", objectFit: "cover" }} 
+                />
+              ) : (
+                getInitials(formData.name)
+              )}
+            </div>
+
+            <label style={{ fontSize: "12px", color: "var(--text-secondary)", cursor: "pointer", border: "1px solid rgba(0, 245, 255, 0.2)", padding: "6px 12px", borderRadius: "6px", background: "rgba(0, 245, 255, 0.05)", display: "inline-block", textAlign: "center", marginBottom: "15px", width: "fit-content", alignSelf: "center" }}>
+              Choose Avatar Image
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleAvatarChange}
+                style={{ display: "none" }}
+              />
+            </label>
 
             <form onSubmit={handleProfileUpdate} style={{ display: "flex", flexDirection: "column", gap: "10px", width: "100%" }}>
               <label style={{ fontSize: "12px", color: "var(--text-secondary)" }}>Full Name</label>

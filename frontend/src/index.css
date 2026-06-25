@@ -76,7 +76,17 @@ body.sidebar-collapsed .sidebar {
   width: 80px !important;
 }
 
-/* Hide text content, sub-titles and alerts when collapsed */
+/* General style for the toggle icon */
+.sidebar-toggle-icon {
+  cursor: pointer;
+  font-size: 20px;
+  color: #C48A52;
+  margin: 0;
+  transition: all 0.3s ease;
+}
+
+/* Hide brand wrapper, text content, sub-titles and alerts when collapsed */
+body.sidebar-collapsed .sidebar .sidebar-brand-wrapper,
 body.sidebar-collapsed .sidebar .sidebar-header p,
 body.sidebar-collapsed .sidebar .nav-item span,
 body.sidebar-collapsed .sidebar .sidebar-alerts,
@@ -89,4 +99,38 @@ body.sidebar-collapsed .sidebar .nav-item,
 body.sidebar-collapsed .sidebar .logout-btn {
   justify-content: center !important;
   padding: 16px 0 !important;
+}
+
+body.sidebar-collapsed .sidebar .sidebar-header .sidebar-toggle-icon {
+  margin: 0 auto !important;
+}
+
+/* ========================================== */
+/* 3. Hover Expansion overrides (no layout shift) */
+/* ========================================== */
+
+body.sidebar-collapsed .sidebar:hover {
+  width: 270px !important;
+  box-shadow: 15px 0 45px rgba(0, 245, 255, 0.25), 0 0 20px rgba(124, 92, 255, 0.15);
+}
+
+body.sidebar-collapsed .sidebar:hover .sidebar-brand-wrapper {
+  display: block !important;
+}
+
+body.sidebar-collapsed .sidebar:hover .sidebar-header p,
+body.sidebar-collapsed .sidebar:hover .nav-item span,
+body.sidebar-collapsed .sidebar:hover .sidebar-alerts,
+body.sidebar-collapsed .sidebar:hover .logout-btn span {
+  display: block !important;
+}
+
+body.sidebar-collapsed .sidebar:hover .nav-item,
+body.sidebar-collapsed .sidebar:hover .logout-btn {
+  justify-content: flex-start !important;
+  padding: 16px 18px !important;
+}
+
+body.sidebar-collapsed .sidebar:hover .sidebar-header .sidebar-toggle-icon {
+  margin: 0 !important;
 }
