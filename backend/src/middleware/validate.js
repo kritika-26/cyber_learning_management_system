@@ -3,7 +3,8 @@ export default function validate(schema) {
     const result = schema.safeParse(req.body);
     if (!result.success) {
       // Map validation errors to a clear error message
-      const errorMsg = result.error.errors.map(err => {
+      const errors = result.error.issues || result.error.errors || [];
+      const errorMsg = errors.map(err => {
         const path = err.path.join(".");
         return path ? `${path}: ${err.message}` : err.message;
       }).join(", ");
